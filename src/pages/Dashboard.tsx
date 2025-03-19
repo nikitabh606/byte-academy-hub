@@ -6,12 +6,16 @@ import { TopicProgress } from "@/components/TopicProgress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { topics } from "@/data/topics";
 import { Edit, Github, Globe, Linkedin, Twitter } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ProfileEditForm } from "@/components/ProfileEditForm";
 
 const Dashboard = () => {
   const [username, setUsername] = useState("");
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const { profileData, user } = useAuth();
   
   const userTopics = [
     { topic: "Arrays", count: 73 },
@@ -39,7 +43,10 @@ const Dashboard = () => {
               {/* Profile Information */}
               <div className="lg:col-span-1">
                 <div className="border rounded-xl p-6 bg-card relative">
-                  <button className="absolute top-4 right-4 p-1 rounded-full hover:bg-muted transition-colors">
+                  <button 
+                    className="absolute top-4 right-4 p-1 rounded-full hover:bg-muted transition-colors"
+                    onClick={() => setIsEditProfileOpen(true)}
+                  >
                     <Edit className="h-4 w-4 text-muted-foreground" />
                   </button>
                   
@@ -52,8 +59,8 @@ const Dashboard = () => {
                       </div>
                     </div>
                     
-                    <h2 className="text-xl font-bold">John Doe</h2>
-                    <p className="text-sm text-muted-foreground mb-4">#johndoe</p>
+                    <h2 className="text-xl font-bold">{profileData?.full_name || "User"}</h2>
+                    <p className="text-sm text-muted-foreground mb-4">#{profileData?.username || "username"}</p>
                     
                     <div className="flex items-center space-x-2 mb-4">
                       <div className="relative inline-block">
@@ -71,18 +78,43 @@ const Dashboard = () => {
                     </div>
                     
                     <div className="flex space-x-4 mb-6">
-                      <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
-                        <Github className="h-5 w-5" />
-                      </a>
-                      <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
-                        <Linkedin className="h-5 w-5" />
-                      </a>
-                      <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
-                        <Twitter className="h-5 w-5" />
-                      </a>
-                      <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
-                        <Globe className="h-5 w-5" />
-                      </a>
+                      {profileData?.github_url && (
+                        <a href={profileData.github_url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                          <Github className="h-5 w-5" />
+                        </a>
+                      )}
+                      {profileData?.linkedin_url && (
+                        <a href={profileData.linkedin_url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                          <Linkedin className="h-5 w-5" />
+                        </a>
+                      )}
+                      {profileData?.twitter_url && (
+                        <a href={profileData.twitter_url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                          <Twitter className="h-5 w-5" />
+                        </a>
+                      )}
+                      {profileData?.website_url && (
+                        <a href={profileData.website_url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                          <Globe className="h-5 w-5" />
+                        </a>
+                      )}
+                      {!profileData?.github_url && !profileData?.linkedin_url && 
+                       !profileData?.twitter_url && !profileData?.website_url && (
+                        <>
+                          <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                            <Github className="h-5 w-5" />
+                          </a>
+                          <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                            <Linkedin className="h-5 w-5" />
+                          </a>
+                          <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                            <Twitter className="h-5 w-5" />
+                          </a>
+                          <a href="#" className="p-2 rounded-full border hover:bg-muted transition-colors">
+                            <Globe className="h-5 w-5" />
+                          </a>
+                        </>
+                      )}
                     </div>
                     
                     <Separator className="mb-4" />
@@ -92,7 +124,7 @@ const Dashboard = () => {
                         <svg viewBox="0 0 24 24" fill="none" className="flex-shrink-0 w-5 h-5 mt-0.5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg">
                           <path d="M3 8L10.8906 13.2604C11.5624 13.7083 12.4376 13.7083 13.1094 13.2604L21 8M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        <span className="text-sm overflow-hidden text-ellipsis">johndoe@example.com</span>
+                        <span className="text-sm overflow-hidden text-ellipsis">{user?.email || "email@example.com"}</span>
                       </div>
                       
                       <div className="flex items-start space-x-3">
@@ -104,20 +136,24 @@ const Dashboard = () => {
                         <span className="text-sm">Joined 3 months ago</span>
                       </div>
                       
-                      <div className="flex items-start space-x-3">
-                        <svg viewBox="0 0 24 24" fill="none" className="flex-shrink-0 w-5 h-5 mt-0.5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 11.5C13.1046 11.5 14 10.6046 14 9.5C14 8.39543 13.1046 7.5 12 7.5C10.8954 7.5 10 8.39543 10 9.5C10 10.6046 10.8954 11.5 12 11.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12 20L18 14C19.3333 12.6667 19.3333 10.3333 18 9L17 8C15.6667 6.66667 13.3333 6.66667 12 8L6 14C4.66667 15.3333 4.66667 17.6667 6 19L7 20C8.33333 21.3333 10.6667 21.3333 12 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <span className="text-sm">San Francisco, CA</span>
-                      </div>
+                      {profileData?.location && (
+                        <div className="flex items-start space-x-3">
+                          <svg viewBox="0 0 24 24" fill="none" className="flex-shrink-0 w-5 h-5 mt-0.5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 11.5C13.1046 11.5 14 10.6046 14 9.5C14 8.39543 13.1046 7.5 12 7.5C10.8954 7.5 10 8.39543 10 9.5C10 10.6046 10.8954 11.5 12 11.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M12 20L18 14C19.3333 12.6667 19.3333 10.3333 18 9L17 8C15.6667 6.66667 13.3333 6.66667 12 8L6 14C4.66667 15.3333 4.66667 17.6667 6 19L7 20C8.33333 21.3333 10.6667 21.3333 12 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-sm">{profileData.location}</span>
+                        </div>
+                      )}
                       
-                      <div className="flex items-start space-x-3">
-                        <svg viewBox="0 0 24 24" fill="none" className="flex-shrink-0 w-5 h-5 mt-0.5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M19 21V19C19 17.9391 18.5786 16.9217 17.8284 16.1716C17.0783 15.4214 16.0609 15 15 15H9C7.93913 15 6.92172 15.4214 6.17157 16.1716C5.42143 16.9217 5 17.9391 5 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <span className="text-sm">Stanford University</span>
-                      </div>
+                      {profileData?.university && (
+                        <div className="flex items-start space-x-3">
+                          <svg viewBox="0 0 24 24" fill="none" className="flex-shrink-0 w-5 h-5 mt-0.5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 21V19C19 17.9391 18.5786 16.9217 17.8284 16.1716C17.0783 15.4214 16.0609 15 15 15H9C7.93913 15 6.92172 15.4214 6.17157 16.1716C5.42143 16.9217 5 17.9391 5 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-sm">{profileData.university}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -128,7 +164,7 @@ const Dashboard = () => {
                   <div className="space-y-4">
                     <Input 
                       placeholder="Your LeetCode Username" 
-                      value={username}
+                      value={username || profileData?.leetcode_username || ""}
                       onChange={(e) => setUsername(e.target.value)}
                     />
                     <Button className="w-full">Submit</Button>
@@ -202,6 +238,16 @@ const Dashboard = () => {
           </div>
         </main>
       </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+          </DialogHeader>
+          <ProfileEditForm onClose={() => setIsEditProfileOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

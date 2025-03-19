@@ -5,14 +5,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+interface ProfileData {
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  location?: string;
+  university?: string;
+  github_url?: string;
+  linkedin_url?: string;
+  twitter_url?: string;
+  website_url?: string;
+  leetcode_username?: string;
+}
+
 interface AuthContextProps {
   session: Session | null;
   user: User | null;
+  profileData: ProfileData | null;
   loading: boolean;
   signUp: (email: string, password: string, userData?: { username?: string, full_name?: string }) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  updateProfile: (data: Partial<ProfileData>) => Promise<void>;
+  fetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -20,9 +36,27 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      
+      if (error) throw error;
+      setProfileData(data);
+    } catch (error: any) {
+      console.error("Error fetching profile data:", error.message);
+    }
+  };
 
   useEffect(() => {
     // Get initial session
@@ -31,11 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       setIsAuthenticated(!!session);
       setLoading(false);
+      
+      if (session?.user) {
+        fetchProfile();
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
@@ -43,8 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === 'SIGNED_IN') {
           toast.success("Signed in successfully");
+          await fetchProfile();
         } else if (event === 'SIGNED_OUT') {
           toast.info("Signed out");
+          setProfileData(null);
         }
       }
     );
@@ -98,16 +138,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProfile = async (data: Partial<ProfileData>) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update(data)
+        .eq("id", user.id);
+      
+      if (error) throw error;
+      
+      toast.success("Profile updated successfully");
+      await fetchProfile();
+    } catch (error: any) {
+      toast.error(error.message || "Error updating profile");
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         session,
         user,
+        profileData,
         loading,
         signUp,
         signIn,
         signOut,
         isAuthenticated,
+        updateProfile,
+        fetchProfile,
       }}
     >
       {children}
