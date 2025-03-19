@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Topics from "./pages/Topics";
 import TopicDetail from "./pages/TopicDetail";
 import Course from "./pages/Course";
+import SystemDesign from "./pages/SystemDesign";
+import Fullstack from "./pages/Fullstack";
+import Notes from "./pages/Notes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +30,9 @@ const App = () => (
             <Route path="/topics" element={<Topics />} />
             <Route path="/topics/:slug" element={<TopicDetail />} />
             <Route path="/courses" element={<Course />} />
+            <Route path="/system-design" element={<SystemDesign />} />
+            <Route path="/fullstack" element={<Fullstack />} />
+            <Route path="/notes" element={<Notes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

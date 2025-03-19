@@ -4,8 +4,6 @@ import { cn } from "@/lib/utils";
 import { 
   Bookmark, 
   BookOpen, 
-  Cpu, 
-  FileCode, 
   Home, 
   LayoutGrid, 
   Save, 
@@ -21,8 +19,6 @@ export function Sidebar() {
     { name: "Profile", path: "/dashboard", icon: User },
     { name: "DSA Sheets", path: "/topics", icon: BookOpen, expandable: true },
     { name: "System Design", path: "/system-design", icon: LayoutGrid },
-    { name: "DSA Playlist", path: "/dsa-playlist", icon: FileCode, expandable: true },
-    { name: "Core Sheets", path: "/core-sheets", icon: Cpu, expandable: true },
     { name: "Saved Notes", path: "/notes", icon: Save },
     { name: "Fullstack", path: "/fullstack", icon: Bookmark },
   ];
