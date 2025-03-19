@@ -2,13 +2,22 @@
 import { Link, useLocation } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
-import { UserCircle, Menu, X } from "lucide-react";
+import { UserCircle, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut, isAuthenticated } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -17,7 +26,7 @@ export function Navbar() {
     { name: "Home", path: "/" },
     { name: "Topics", path: "/topics" },
     { name: "Courses", path: "/courses" },
-    { name: "Dashboard", path: "/dashboard" },
+    { name: "Notes", path: "/notes" },
   ];
 
   return (
@@ -52,12 +61,36 @@ export function Navbar() {
         
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link to="/dashboard">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <UserCircle className="h-6 w-6" />
-              <span className="sr-only">Profile</span>
-            </Button>
-          </Link>
+          
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <UserCircle className="h-6 w-6" />
+                  <span className="sr-only">User menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/notes">My Notes</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/auth">
+              <Button variant="default" size="sm">
+                Sign In
+              </Button>
+            </Link>
+          )}
           
           {/* Mobile menu button */}
           <Button 
@@ -95,6 +128,30 @@ export function Navbar() {
                 {item.name}
               </Link>
             ))}
+            
+            {!isAuthenticated && (
+              <Link 
+                to="/auth" 
+                className="text-sm font-medium transition-colors p-2 rounded-md bg-primary text-primary-foreground"
+                onClick={closeMenu}
+              >
+                Sign In
+              </Link>
+            )}
+            
+            {isAuthenticated && (
+              <Button 
+                variant="outline" 
+                className="text-destructive border-destructive/30 justify-start"
+                onClick={() => {
+                  signOut();
+                  closeMenu();
+                }}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            )}
           </nav>
         </div>
       )}
