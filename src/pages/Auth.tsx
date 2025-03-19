@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useEffect } from "react";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -21,7 +22,6 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
-  fullName: z.string().min(2, { message: "Full name is required" }),
   confirmPassword: z.string().min(6),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -35,8 +35,11 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const { signIn, signUp, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -51,11 +54,50 @@ export default function Auth() {
     defaultValues: {
       email: "",
       username: "",
-      fullName: "",
       password: "",
       confirmPassword: "",
     },
   });
+
+  // Handle email verification
+  useEffect(() => {
+    const handleEmailVerification = async () => {
+      const token = searchParams.get('token');
+      const type = searchParams.get('type');
+      
+      if (token && type === 'email_confirmation') {
+        setVerifying(true);
+        try {
+          // This will handle the verification automatically
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'email_confirmation',
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          setVerificationMessage({
+            type: 'success',
+            message: 'Email verified successfully! You can now log in.'
+          });
+          
+          // Automatically switch to login tab
+          setActiveTab('login');
+        } catch (error: any) {
+          setVerificationMessage({
+            type: 'error',
+            message: `Email verification failed: ${error.message}`
+          });
+        } finally {
+          setVerifying(false);
+        }
+      }
+    };
+    
+    handleEmailVerification();
+  }, [searchParams]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -82,7 +124,6 @@ export default function Auth() {
     try {
       await signUp(data.email, data.password, {
         username: data.username,
-        full_name: data.fullName,
       });
       setActiveTab("login");
     } catch (err: any) {
@@ -101,6 +142,23 @@ export default function Auth() {
           <div className="bg-card rounded-lg shadow-lg p-6">
             <h1 className="text-2xl font-bold text-center mb-6">Welcome to Byte Academy</h1>
             
+            {verifying && (
+              <div className="mb-6 flex flex-col items-center justify-center p-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-center">Verifying your email...</p>
+              </div>
+            )}
+            
+            {verificationMessage && (
+              <Alert 
+                variant={verificationMessage.type === 'success' ? 'default' : 'destructive'} 
+                className="mb-4"
+              >
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>{verificationMessage.message}</AlertDescription>
+              </Alert>
+            )}
+            
             <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Login</TabsTrigger>
@@ -109,6 +167,7 @@ export default function Auth() {
               
               {error && (
                 <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4 mr-2" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
@@ -145,7 +204,11 @@ export default function Auth() {
                     />
                     
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Logging in..." : "Login"}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging in...
+                        </>
+                      ) : "Login"}
                     </Button>
                   </form>
                 </Form>
@@ -184,20 +247,6 @@ export default function Auth() {
                     
                     <FormField
                       control={signupForm.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={signupForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
@@ -225,10 +274,19 @@ export default function Auth() {
                     />
                     
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Creating account..." : "Sign Up"}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account...
+                        </>
+                      ) : "Sign Up"}
                     </Button>
                   </form>
                 </Form>
+                
+                <div className="mt-4 text-sm text-muted-foreground text-center">
+                  <p>By signing up, you'll receive a verification email.</p>
+                  <p>Please check your inbox to complete registration.</p>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
