@@ -2,15 +2,17 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { CSSProperties } from "react";
 
 interface CourseCardProps {
   title: string;
   description: string;
   slug: string;
   className?: string;
+  style?: CSSProperties;
 }
 
-export function CourseCard({ title, description, slug, className }: CourseCardProps) {
+export function CourseCard({ title, description, slug, className, style }: CourseCardProps) {
   return (
     <Link 
       to={`/topics/${slug}`}
@@ -18,6 +20,7 @@ export function CourseCard({ title, description, slug, className }: CourseCardPr
         "block group relative overflow-hidden rounded-lg border bg-card p-6 transition-all card-hover",
         className
       )}
+      style={style}
     >
       <div className="flex flex-col h-full justify-between">
         <div>
