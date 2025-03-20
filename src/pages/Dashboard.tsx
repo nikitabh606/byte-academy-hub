@@ -11,26 +11,187 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProfileEditForm } from "@/components/ProfileEditForm";
+import { supabase } from "@/integrations/supabase/client";
+import { Topic, topics as allTopics } from "@/data/topics";
+import { toast } from "sonner";
+import { CourseProgressBar } from "@/components/course/CourseProgressBar";
+import { format } from "date-fns";
+import { dsaCourse } from "@/data/courses";
+
+interface RecentActivity {
+  id: string;
+  problemTitle: string;
+  topic: string;
+  platform: string;
+  solvedAt: string;
+}
 
 const Dashboard = () => {
   const [username, setUsername] = useState("");
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const { profileData, user } = useAuth();
+  const [userTopics, setUserTopics] = useState<Topic[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [courseProgress, setCoursesProgress] = useState({
+    dsa: { completed: 0, total: 0 },
+    sde: { completed: 0, total: 0 },
+    top79: { completed: 0, total: 0 }
+  });
+  const { profileData, user, isAuthenticated } = useAuth();
   
-  const userTopics = [
-    { topic: "Arrays", count: 73 },
-    { topic: "Graph", count: 19 },
-    { topic: "Binary Search", count: 18 },
-    { topic: "Binary Tree", count: 15 },
-    { topic: "Dynamic Programming", count: 13 },
-    { topic: "Hashing", count: 12 },
-    { topic: "Recursion", count: 12 },
-    { topic: "Linked List", count: 10 },
-    { topic: "Binary Search Tree", count: 7 },
-    { topic: "Greedy", count: 6 },
-    { topic: "Stack", count: 6 },
-    { topic: "Sorting", count: 5 }
-  ];
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUserData = async () => {
+      try {
+        // Fetch all solved problems
+        const { data: solvedData, error: solvedError } = await supabase
+          .from("solved_problems")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("solved_at", { ascending: false });
+          
+        if (solvedError) throw solvedError;
+        
+        if (solvedData && solvedData.length > 0) {
+          // Process topics covered
+          const problemMap = new Map();
+          
+          // Map all problems from all topics
+          allTopics.forEach(topic => {
+            if (topic.slug) {
+              // For simplicity, we'll just use the first part of the ID to determine which topic it belongs to
+              const topicPrefix = topic.slug.charAt(0);
+              problemMap.set(topicPrefix, topic.title);
+            }
+          });
+          
+          // Count problems per topic
+          const topicCounts = new Map();
+          
+          solvedData.forEach(solved => {
+            // Extract first letter or character from problem_id to use as a key
+            const problemId = solved.problem_id;
+            let topicKey = '';
+            
+            // Try to determine the topic from problem ID (this is simplified)
+            if (problemId.startsWith('a')) {
+              topicKey = 'arrays';
+            } else if (problemId.startsWith('bs')) {
+              topicKey = 'binary-search';
+            } else if (problemId.startsWith('bt')) {
+              topicKey = 'binary-tree';
+            } else if (problemId.startsWith('dp')) {
+              topicKey = 'dynamic-programming';
+            } else if (problemId.startsWith('g')) {
+              topicKey = 'graph';
+            } else if (problemId.startsWith('h')) {
+              topicKey = 'hashing';
+            } else if (problemId.startsWith('ll')) {
+              topicKey = 'linked-list';
+            } else if (problemId.startsWith('s')) {
+              topicKey = 'stack';
+            } else {
+              topicKey = 'other';
+            }
+            
+            if (topicCounts.has(topicKey)) {
+              topicCounts.set(topicKey, topicCounts.get(topicKey) + 1);
+            } else {
+              topicCounts.set(topicKey, 1);
+            }
+          });
+          
+          // Create topics array with counts
+          const userCoveredTopics = allTopics
+            .filter(topic => topicCounts.has(topic.slug))
+            .map(topic => ({
+              ...topic,
+              count: topicCounts.get(topic.slug) || 0
+            }))
+            .sort((a, b) => (b.count || 0) - (a.count || 0));
+          
+          setUserTopics(userCoveredTopics.length > 0 ? userCoveredTopics : allTopics);
+          
+          // Process recent activities (latest 5)
+          const recentActivitiesData: RecentActivity[] = solvedData
+            .slice(0, 5)
+            .map(solved => {
+              // Find problem details (simplified - in a real app, you would query for the problem details)
+              let problemTitle = "Problem";
+              let topic = "Data Structures";
+              let platform = "LeetCode";
+              
+              // Just for demonstration - in reality you'd look up the real problem info
+              if (solved.problem_id.startsWith('a')) {
+                problemTitle = "Array Problem";
+                topic = "Arrays";
+              } else if (solved.problem_id.startsWith('bs')) {
+                problemTitle = "Binary Search Problem";
+                topic = "Binary Search";
+              } else if (solved.problem_id.startsWith('ll')) {
+                problemTitle = "Linked List Problem";
+                topic = "Linked List";
+              }
+              
+              return {
+                id: solved.id,
+                problemTitle,
+                topic,
+                platform,
+                solvedAt: solved.solved_at
+              };
+            });
+          
+          setRecentActivities(recentActivitiesData);
+          
+          // Calculate course progress
+          // DSA Course Progress
+          const dsaTotalProblems = dsaCourse.totalProblems;
+          const dsaCompletedProblems = solvedData.length;
+          
+          setCoursesProgress({
+            dsa: { 
+              completed: dsaCompletedProblems, 
+              total: dsaTotalProblems 
+            },
+            sde: { 
+              completed: Math.round(dsaCompletedProblems * 0.2), // Just for demonstration
+              total: 100
+            },
+            top79: { 
+              completed: Math.round(dsaCompletedProblems * 0.25), // Just for demonstration
+              total: 79
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        toast.error("Failed to load your data. Please try again later.");
+      }
+    };
+    
+    if (isAuthenticated) {
+      fetchUserData();
+    }
+  }, [user, isAuthenticated]);
+  
+  const handleLeetCodeUsernameSubmit = async () => {
+    if (!username || !user) return;
+    
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ leetcode_username: username })
+        .eq("id", user.id);
+        
+      if (error) throw error;
+      
+      toast.success("LeetCode username updated successfully!");
+    } catch (error) {
+      console.error("Error updating LeetCode username:", error);
+      toast.error("Failed to update LeetCode username");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -167,7 +328,12 @@ const Dashboard = () => {
                       value={username || profileData?.leetcode_username || ""}
                       onChange={(e) => setUsername(e.target.value)}
                     />
-                    <Button className="w-full">Submit</Button>
+                    <Button 
+                      className="w-full"
+                      onClick={handleLeetCodeUsernameSubmit}
+                    >
+                      Submit
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -179,13 +345,13 @@ const Dashboard = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="flex flex-col items-center">
-                      <ProgressCircle value={29} label="A2Z DSA" />
+                      <ProgressCircle value={courseProgress.dsa.completed / courseProgress.dsa.total * 100} label="A2Z DSA" />
                     </div>
                     <div className="flex flex-col items-center">
-                      <ProgressCircle value={6} label="SDE Sheet" />
+                      <ProgressCircle value={courseProgress.sde.completed / courseProgress.sde.total * 100} label="SDE Sheet" />
                     </div>
                     <div className="flex flex-col items-center">
-                      <ProgressCircle value={19} label="Top 79" />
+                      <ProgressCircle value={courseProgress.top79.completed / courseProgress.top79.total * 100} label="Top 79" />
                     </div>
                   </div>
                 </div>
@@ -194,13 +360,19 @@ const Dashboard = () => {
                   <h3 className="text-lg font-medium mb-6">Topics Covered</h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
-                    {userTopics.map((item, index) => (
-                      <TopicProgress 
-                        key={index} 
-                        topic={item.topic} 
-                        count={item.count} 
-                      />
-                    ))}
+                    {userTopics.length > 0 ? (
+                      userTopics.map((item, index) => (
+                        <TopicProgress 
+                          key={index} 
+                          topic={item.title} 
+                          count={item.count || 0} 
+                        />
+                      ))
+                    ) : (
+                      <div className="col-span-2 text-center py-8 text-muted-foreground">
+                        You haven't solved any problems yet. Start solving to see your topics coverage!
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -208,29 +380,23 @@ const Dashboard = () => {
                   <h3 className="text-lg font-medium mb-6">Recent Activity</h3>
                   
                   <div className="space-y-4">
-                    <div className="p-3 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex justify-between items-center">
-                        <div className="font-medium">Completed: Two Sum</div>
-                        <div className="text-sm text-muted-foreground">2 days ago</div>
+                    {recentActivities.length > 0 ? (
+                      recentActivities.map((activity) => (
+                        <div key={activity.id} className="p-3 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <div className="flex justify-between items-center">
+                            <div className="font-medium">Completed: {activity.problemTitle}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {activity.solvedAt ? format(new Date(activity.solvedAt), 'dd MMM yyyy') : 'Recently'}
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">{activity.topic} - {activity.platform}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No recent activity. Start solving problems to track your progress!
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">Arrays - LeetCode</div>
-                    </div>
-                    
-                    <div className="p-3 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex justify-between items-center">
-                        <div className="font-medium">Completed: Binary Search</div>
-                        <div className="text-sm text-muted-foreground">3 days ago</div>
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">Binary Search - LeetCode</div>
-                    </div>
-                    
-                    <div className="p-3 border rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex justify-between items-center">
-                        <div className="font-medium">Completed: Merge Two Sorted Lists</div>
-                        <div className="text-sm text-muted-foreground mt-1">5 days ago</div>
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">Linked List - LeetCode</div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

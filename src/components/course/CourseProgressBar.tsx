@@ -1,11 +1,14 @@
 
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+
 interface CourseProgressBarProps {
   completed: number;
   total: number;
 }
 
 export function CourseProgressBar({ completed, total }: CourseProgressBarProps) {
-  const percentage = Math.round((completed / total) * 100);
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
     <div className="border rounded-lg p-4 mb-8 bg-card">
@@ -15,7 +18,12 @@ export function CourseProgressBar({ completed, total }: CourseProgressBarProps) 
       </div>
       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
         <div 
-          className="h-full bg-brand-500 rounded-full"
+          className={cn(
+            "h-full rounded-full transition-all duration-300",
+            percentage >= 80 ? "bg-emerald-500" : 
+            percentage >= 50 ? "bg-brand-500" : 
+            percentage >= 25 ? "bg-amber-500" : "bg-red-500"
+          )}
           style={{ width: `${percentage}%` }}
         ></div>
       </div>
