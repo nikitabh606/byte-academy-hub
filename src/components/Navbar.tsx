@@ -22,6 +22,11 @@ export function Navbar() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
+  const handleLogout = async () => {
+    await signOut();
+    closeMenu();
+  };
+
   const navItems = [
     { name: "Home", path: "/" },
     { name: "Topics", path: "/topics" },
@@ -78,7 +83,7 @@ export function Navbar() {
                   <Link to="/notes">My Notes</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="text-destructive">
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </DropdownMenuItem>
@@ -143,10 +148,7 @@ export function Navbar() {
               <Button 
                 variant="outline" 
                 className="text-destructive border-destructive/30 justify-start"
-                onClick={() => {
-                  signOut();
-                  closeMenu();
-                }}
+                onClick={handleLogout}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
