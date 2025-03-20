@@ -40,23 +40,65 @@ export type Database = {
         Row: {
           avatar_url: string | null
           full_name: string | null
+          github_url: string | null
           id: string
+          leetcode_username: string | null
+          linkedin_url: string | null
+          location: string | null
+          twitter_url: string | null
+          university: string | null
           updated_at: string | null
           username: string | null
+          website_url: string | null
         }
         Insert: {
           avatar_url?: string | null
           full_name?: string | null
+          github_url?: string | null
           id: string
+          leetcode_username?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          twitter_url?: string | null
+          university?: string | null
           updated_at?: string | null
           username?: string | null
+          website_url?: string | null
         }
         Update: {
           avatar_url?: string | null
           full_name?: string | null
+          github_url?: string | null
           id?: string
+          leetcode_username?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          twitter_url?: string | null
+          university?: string | null
           updated_at?: string | null
           username?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      solved_problems: {
+        Row: {
+          id: string
+          problem_id: string
+          solved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          problem_id: string
+          solved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          problem_id?: string
+          solved_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

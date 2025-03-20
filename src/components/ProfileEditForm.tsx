@@ -32,8 +32,10 @@ export function ProfileEditForm({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     try {
       await updateProfile(formData);
+      toast.success("Profile updated successfully");
       onClose();
     } catch (error) {
+      console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
     }
   };

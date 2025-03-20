@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExternalLink } from "lucide-react";
 import { topics } from "@/data/topics";
 import { topicProblems } from "@/data/courses";
+import { ProblemCheckbox } from "@/components/ProblemCheckbox";
 
 const TopicDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -79,46 +80,47 @@ const TopicDetail = () => {
               <TabsContent value="problems" className="space-y-4">
                 {problems.length > 0 ? (
                   problems.map((problem) => (
-                    <a 
+                    <div 
                       key={problem.id}
-                      href={problem.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block p-4 border rounded-lg bg-card hover:shadow-md transition-all"
+                      className="flex p-4 border rounded-lg bg-card hover:shadow-md transition-all"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium">{problem.title}</h3>
-                          <div className="flex items-center mt-1">
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              problem.difficulty === "easy" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
-                              problem.difficulty === "medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" : 
-                              "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
-                            }`}>
-                              {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-3">
-                              {problem.platform === "leetcode" ? "LeetCode" : 
-                               problem.platform === "geeksforgeeks" ? "GeeksforGeeks" : 
-                               "CodeForces"}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          {problem.completed ? (
-                            <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center mr-2">
-                              <svg viewBox="0 0 24 24" className="w-4 h-4 text-emerald-500 dark:text-emerald-300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 13L9 17L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
+                      <div className="flex-grow">
+                        <a 
+                          href={problem.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-medium">{problem.title}</h3>
+                              <div className="flex items-center mt-1">
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  problem.difficulty === "easy" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
+                                  problem.difficulty === "medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" : 
+                                  "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                                }`}>
+                                  {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
+                                </span>
+                                <span className="text-xs text-muted-foreground ml-3">
+                                  {problem.platform === "leetcode" ? "LeetCode" : 
+                                   problem.platform === "geeksforgeeks" ? "GeeksforGeeks" : 
+                                   "CodeForces"}
+                                </span>
+                              </div>
                             </div>
-                          ) : (
-                            <div className="w-6 h-6 border border-muted-foreground/30 rounded-full mr-2"></div>
-                          )}
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        </div>
+                            
+                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </a>
                       </div>
-                    </a>
+                      <div className="flex items-center ml-4">
+                        <ProblemCheckbox 
+                          problemId={problem.id} 
+                          initialState={problem.completed || false}
+                        />
+                      </div>
+                    </div>
                   ))
                 ) : (
                   <div className="text-center py-12">
